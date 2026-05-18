@@ -48,17 +48,17 @@
 
 ###  Análise Comparativa de Modelos
 
-| Critério | Claude claude-sonnet-4-20250514 ✅ | GPT-4o |
+| Critério | Claude claude-sonnet-4-20250514  | GPT-4o |
 |----------|--------------------------------|--------|
 | Custo (input/1M tokens) | ~$3,00 | ~$2,50 |
 | Custo (output/1M tokens) | ~$15,00 | ~$10,00 |
 | Contexto máximo | 200K tokens | 128K tokens |
 | Latência média (P50) | ~1,2s | ~1,0s |
-| Function calling estruturado | ✅ Nativo (tool_use) | ✅ Nativo |
-| Suporte a português clínico | ✅ Excelente | ✅ Muito bom |
-| Privacidade / on-premise | ❌ Cloud only | ❌ Cloud only |
-| Qualidade clínica (raciocínio) | ✅ Superior em textos longos | ✅ Muito bom |
-| Rejeição de jailbreak médico | ✅ Robusto por treinamento |
+| Function calling estruturado |  Nativo (tool_use) |  Nativo |
+| Suporte a português clínico |  Excelente |  Muito bom |
+| Privacidade / on-premise |  Cloud only |  Cloud only |
+| Qualidade clínica (raciocínio) |  Superior em textos longos |  Muito bom |
+| Rejeição de jailbreak médico |  Robusto por treinamento |
 
 **Decisão**: Claude Sonnet foi escolhido pelo contexto maior (histórico clínico extenso), pela robustez intrínseca contra geração de diagnósticos definitivos, e pelo suporte via SDK Anthropic com tipagem Python clara.
 
