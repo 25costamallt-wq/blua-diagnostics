@@ -1,0 +1,29 @@
+# === CRÍTICO: Nunca versionar ===
+.env
+*.key
+*secret*
+*credential*
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dados locais / ChromaDB
+data/
+*.sqlite
+*.db
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

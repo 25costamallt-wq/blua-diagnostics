@@ -1,0 +1,31 @@
+# BluaDiagnostics — Dependências Python
+# Sprint 1 — PoC
+
+# Core LLM
+anthropic>=0.40.0
+
+# LangChain + LangGraph
+langchain>=0.3.0
+langchain-anthropic>=0.3.0
+langchain-community>=0.3.0
+langgraph>=0.2.0
+
+# RAG — Vector Store
+chromadb>=0.5.0
+langchain-chroma>=0.1.0
+
+# Embeddings
+langchain-openai>=0.2.0  # text-embedding-3-small (alternativo)
+# ou: pip install langchain-voyageai  (voyage-3, recomendado Anthropic)
+
+# Utilitários
+python-dotenv>=1.0.0     # Gestão de variáveis de ambiente
+tiktoken>=0.7.0          # Contagem de tokens
+pydantic>=2.0.0          # Validação de schemas
+
+# Notebook
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# Avaliação (evals)
+pandas>=2.0.0

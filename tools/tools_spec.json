@@ -1,0 +1,292 @@
+{
+  "tools": [
+    {
+      "name": "consultar_historico_paciente",
+      "description": "Consulta o histórico clínico do beneficiário na base de dados da Care Plus. Retorna condições pré-existentes, medicamentos em uso, alergias, últimas consultas e exames recentes. Use sempre no início do check-up para contextualizar a avaliação. Nunca exponha dados sensíveis ao usuário além do necessário.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "beneficiario_id": {
+            "type": "string",
+            "description": "ID único do beneficiário no sistema Care Plus (ex: 'BEN-123456'). Obtido da sessão autenticada do app Blua."
+          },
+          "campos_solicitados": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "condicoes_cronicas",
+                "medicamentos_atuais",
+                "alergias",
+                "ultima_consulta",
+                "exames_recentes",
+                "historico_familiar",
+                "vacinas",
+                "imc_historico"
+              ]
+            },
+            "description": "Lista de campos do histórico a serem retornados. Solicite apenas o necessário para a avaliação (princípio de minimização LGPD).",
+            "minItems": 1
+          }
+        },
+        "required": ["beneficiario_id", "campos_solicitados"]
+      },
+      "returns": {
+        "description": "Objeto JSON com os campos solicitados do histórico clínico",
+        "example": {
+          "beneficiario_id": "BEN-123456",
+          "condicoes_cronicas": ["Hipertensão arterial", "Diabetes tipo 2"],
+          "medicamentos_atuais": [
+            {"nome": "Losartana", "dose": "50mg", "frequencia": "1x/dia"},
+            {"nome": "Metformina", "dose": "850mg", "frequencia": "2x/dia"}
+          ],
+          "alergias": ["Penicilina"],
+          "ultima_consulta": {
+            "data": "2025-03-15",
+            "especialidade": "Clínica Geral",
+            "medico": "Dr. Carlos Ferreira"
+          }
+        }
+      },
+      "simulated_behavior": "Retorna dados mockados para beneficiários com ID 'BEN-DEMO'. Para outros IDs, retorna erro 404 com mensagem 'Beneficiário não encontrado'.",
+      "error_handling": {
+        "beneficiario_nao_encontrado": "Retorna {error: 'BENEFICIARY_NOT_FOUND', message: 'Histórico não disponível. Prossiga com avaliação sem histórico prévio.'}",
+        "campos_invalidos": "Retorna apenas campos válidos, ignora inválidos sem erro",
+        "timeout": "Retorna {error: 'TIMEOUT', message: 'Serviço temporariamente indisponível. Tente novamente.'}"
+      }
+    },
+    {
+      "name": "verificar_interacoes_medicamentosas",
+      "description": "Verifica interações medicamentosas entre dois ou mais medicamentos. Consulta base de dados farmacológica atualizada. Use quando o beneficiário relatar uso de múltiplos medicamentos ou quando houver suspeita de interação. IMPORTANTE: esta ferramenta fornece informações educativas — a decisão clínica final é sempre do médico.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "medicamentos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nome": {
+                  "type": "string",
+                  "description": "Nome genérico ou comercial do medicamento (ex: 'Losartana', 'AAS', 'Dipirona')"
+                },
+                "dose": {
+                  "type": "string",
+                  "description": "Dose em uso (ex: '50mg', '100mg'). Opcional mas melhora a precisão da análise."
+                }
+              },
+              "required": ["nome"]
+            },
+            "description": "Lista de medicamentos a verificar (mínimo 2, máximo 10)",
+            "minItems": 2,
+            "maxItems": 10
+          },
+          "contexto_clinico": {
+            "type": "string",
+            "description": "Contexto clínico relevante para a verificação (ex: 'paciente idoso', 'insuficiência renal leve'). Opcional.",
+            "maxLength": 500
+          }
+        },
+        "required": ["medicamentos"]
+      },
+      "returns": {
+        "description": "Resultado da verificação de interações",
+        "example": {
+          "interacoes_encontradas": true,
+          "nivel_risco": "moderado",
+          "interacoes": [
+            {
+              "medicamento_a": "AAS",
+              "medicamento_b": "Losartana",
+              "nivel": "moderado",
+              "descricao": "AAS pode reduzir o efeito anti-hipertensivo da Losartana. Monitorar pressão arterial.",
+              "recomendacao": "Discutir com médico sobre ajuste de dose ou alternativa"
+            }
+          ],
+          "aviso_clinico": "Esta verificação é informativa. Decisão terapêutica deve ser do médico responsável."
+        }
+      },
+      "simulated_behavior": "Verifica interações entre AAS+Losartana, Warfarina+Ibuprofeno, Metformina+Álcool como casos pré-programados. Para outros pares, retorna 'Nenhuma interação relevante encontrada no banco de dados simulado'.",
+      "error_handling": {
+        "medicamento_nao_reconhecido": "Retorna aviso com medicamentos não encontrados e processa os demais",
+        "lista_insuficiente": "Retorna erro se menos de 2 medicamentos fornecidos"
+      }
+    },
+    {
+      "name": "agendar_teleconsulta",
+      "description": "Agenda uma teleconsulta com médico disponível na plataforma Blua. Verifica disponibilidade em tempo real e confirma o agendamento. Use quando o check-up indicar necessidade de avaliação médica não emergencial, ou quando o beneficiário solicitar. NUNCA use em situações de emergência — nesse caso, acione o protocolo de escalada humana.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "beneficiario_id": {
+            "type": "string",
+            "description": "ID único do beneficiário no sistema Care Plus"
+          },
+          "especialidade": {
+            "type": "string",
+            "enum": [
+              "clinica_geral",
+              "cardiologia",
+              "dermatologia",
+              "ginecologia",
+              "pediatria",
+              "psiquiatria",
+              "ortopedia",
+              "endocrinologia"
+            ],
+            "description": "Especialidade médica requerida para a teleconsulta"
+          },
+          "urgencia": {
+            "type": "string",
+            "enum": ["rotina", "preferencial", "urgente"],
+            "description": "Nível de urgência do agendamento. 'rotina' = próximos 7 dias; 'preferencial' = próximas 48h; 'urgente' = próximas 4h.",
+            "default": "rotina"
+          },
+          "motivo_consulta": {
+            "type": "string",
+            "description": "Breve descrição do motivo da consulta para contextualizar o médico (máx. 500 caracteres). Extraído do check-up.",
+            "maxLength": 500
+          },
+          "preferencia_horario": {
+            "type": "object",
+            "properties": {
+              "periodo": {
+                "type": "string",
+                "enum": ["manha", "tarde", "noite", "qualquer"],
+                "default": "qualquer"
+              },
+              "data_preferencial": {
+                "type": "string",
+                "format": "date",
+                "description": "Data preferencial no formato YYYY-MM-DD. Opcional."
+              }
+            }
+          }
+        },
+        "required": ["beneficiario_id", "especialidade", "motivo_consulta"]
+      },
+      "returns": {
+        "description": "Confirmação do agendamento",
+        "example": {
+          "agendamento_id": "AGD-789012",
+          "status": "confirmado",
+          "medico": "Dra. Ana Paula Rocha",
+          "especialidade": "Clínica Geral",
+          "data_hora": "2025-05-20T14:30:00-03:00",
+          "link_teleconsulta": "https://blua.careplus.com.br/teleconsulta/AGD-789012",
+          "instrucoes": "Acesse o link 10 minutos antes da consulta. Tenha à mão seus medicamentos e exames recentes."
+        }
+      },
+      "simulated_behavior": "Simula agendamento bem-sucedido para qualquer combinação de parâmetros válidos, retornando dados mockados. Em produção, integraria com sistema real de agenda médica Care Plus.",
+      "error_handling": {
+        "sem_disponibilidade": "Retorna alternativas para outros horários ou especialidades próximas",
+        "especialidade_sem_cobertura": "Verifica cobertura do plano e informa o beneficiário",
+        "emergencia_detectada": "Rejeita agendamento e retorna instrução para acionar SAMU/central de emergência"
+      }
+    },
+    {
+      "name": "registrar_sinais_vitais",
+      "description": "Registra sinais vitais informados pelo beneficiário durante o check-up digital. Armazena temporariamente na sessão e, com consentimento, persiste no histórico do app Blua. Compara com valores de referência e alerta sobre desvios.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "beneficiario_id": {
+            "type": "string",
+            "description": "ID único do beneficiário"
+          },
+          "sinais": {
+            "type": "object",
+            "properties": {
+              "pressao_sistolica": {
+                "type": "integer",
+                "description": "Pressão sistólica em mmHg (ex: 120)",
+                "minimum": 60,
+                "maximum": 250
+              },
+              "pressao_diastolica": {
+                "type": "integer",
+                "description": "Pressão diastólica em mmHg (ex: 80)",
+                "minimum": 40,
+                "maximum": 150
+              },
+              "frequencia_cardiaca": {
+                "type": "integer",
+                "description": "Frequência cardíaca em bpm (ex: 72)",
+                "minimum": 30,
+                "maximum": 220
+              },
+              "temperatura": {
+                "type": "number",
+                "description": "Temperatura corporal em °C (ex: 36.8)",
+                "minimum": 34.0,
+                "maximum": 42.0
+              },
+              "saturacao_o2": {
+                "type": "integer",
+                "description": "Saturação de oxigênio em % (ex: 98)",
+                "minimum": 70,
+                "maximum": 100
+              },
+              "glicemia": {
+                "type": "integer",
+                "description": "Glicemia em mg/dL (ex: 95). Informar se é jejum ou pós-prandial.",
+                "minimum": 20,
+                "maximum": 600
+              },
+              "peso_kg": {
+                "type": "number",
+                "description": "Peso em quilogramas",
+                "minimum": 1,
+                "maximum": 300
+              },
+              "altura_cm": {
+                "type": "integer",
+                "description": "Altura em centímetros",
+                "minimum": 30,
+                "maximum": 250
+              }
+            },
+            "minProperties": 1
+          },
+          "contexto_medicao": {
+            "type": "string",
+            "enum": ["repouso", "apos_exercicio", "pos_refeicao", "jejum", "nao_informado"],
+            "default": "nao_informado"
+          }
+        },
+        "required": ["beneficiario_id", "sinais"]
+      },
+      "returns": {
+        "description": "Resultado do registro com análise dos valores",
+        "example": {
+          "registro_id": "VIT-345678",
+          "timestamp": "2025-05-17T10:30:00-03:00",
+          "analise": {
+            "pressao_arterial": {
+              "valor": "140/90",
+              "classificacao": "Hipertensão Estágio 1",
+              "referencia": "Normal: < 120/80 mmHg",
+              "alerta": true
+            }
+          },
+          "red_flags_detectados": ["Pressão arterial elevada — recomendar avaliação médica"],
+          "imc_calculado": 27.3,
+          "imc_classificacao": "Sobrepeso"
+        }
+      },
+      "simulated_behavior": "Valida valores e retorna classificações de acordo com referências da SBC (Sociedade Brasileira de Cardiologia) e SBD (Sociedade Brasileira de Diabetes)."
+    }
+  ],
+  "metadata": {
+    "versao": "1.0",
+    "sprint": "Sprint 1",
+    "projeto": "BluaDiagnostics — Care Plus Challenge",
+    "padrao": "Anthropic Tool Use / OpenAI Function Calling compatible",
+    "notas": [
+      "Todas as tools operam com dados simulados (mockados) na PoC da Sprint 1",
+      "Em produção, integrariam com APIs reais da Care Plus e sistemas de prontuário eletrônico",
+      "O campo 'simulated_behavior' descreve como a tool se comporta no ambiente de PoC",
+      "Nenhum dado real de pacientes é utilizado nesta fase"
+    ]
+  }
+}
